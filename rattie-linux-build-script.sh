@@ -9,7 +9,7 @@
 # ******************************************************************************
 
 SCRIPT_NAME="RATTIE LINUX Build Script"
-SCRIPT_VERSION="0.2"
+SCRIPT_VERSION="0.3"
 LINUX_NAME="RATTIE LINUX"
 DISTRIBUTION_VERSION="2018.6"
 
@@ -197,11 +197,11 @@ build_kernel () {
     cp ${BASEDIR}/rattie_logo_224.ppm drivers/video/logo/logo_linux_clut224.ppm
     sed -i "s/.*CONFIG_OVERLAY_FS.*/CONFIG_OVERLAY_FS=y/" .config
 
-    make vmlinux -j ${JFLAG}
+    # make vmlinux -j ${JFLAG}
     #cp vmlinux ${ISODIR}/kernel.gz
 
-    # make bzImage -j ${JFLAG}
-    # cp arch/x86/boot/bzImage ${ISODIR}/kernel.gz
+    make bzImage -j ${JFLAG}
+    cp arch/x86/boot/bzImage ${ISODIR}/kernel.gz
 }
 
 build_busybox () {
@@ -210,19 +210,80 @@ build_busybox () {
     tar -xvf busybox.tar.bz2 && rm busybox.tar.bz2
 
     cd busybox-${BUSYBOX_VERSION}
-
+    make clean
+    make defconfig
+    sed -i "s/.*CONFIG_STATIC.*/CONFIG_STATIC=y/" .config
+    make busybox -j ${JFLAG}
+    make install
 }
 
 build_extras () {
-    return 0
+    show_dialog "DEMO" "Function is not available in this version of the script."
 }
 
 generate_rootfs () {
-    return 0
+    cd ${SOURCEDIR}/busybox-${BUSYBOX_VERSION}
+    cp -R _install ${ROOTFSDIR}
+    cd ${ROOTFSDIR}
+    rm -f linuxrc
+    mkdir dev
+    mkdir etc
+    mkdir proc
+    mkdir src
+    mkdir sys
+    mkdir tmp
+    cd etc
+    touch motd
+    echo >> motd
+    echo '  #########################################' >> motd
+    echo '  #                                       #' >> motd
+    echo '  #  Welcome to "RATTIE LINUX" by kj/P1X  #' >> motd
+    echo '  #                                       #' >> motd
+    echo '  #########################################' >> motd
+    echo >> motd
+    cd ..
+    touch init
+    echo '#!/bin/sh' >> init
+    echo 'dmesg -n 1' >> init
+    echo 'mount -t devtmpfs none /dev' >> init
+    echo 'mount -t proc none /proc' >> init
+    echo 'mount -t sysfs none /sys' >> init
+    echo 'cat /etc/motd' >> init
+    echo 'while true' >> init
+    echo 'do' >> init
+    echo '  setsid cttyhack /bin/sh' >> init
+    echo 'done' >> init
+    echo >> init
+    chmod +x init
+
+    rm -f ${ISODIR}/rootfs.cpio.gz
+    cd ${ROOTFSDIR}
+    find . | cpio -H newc -o | gzip > ${ISODIR}/rootfs.cpio.gz
 }
 
 generate_iso () {
-    return 0
+    if [! -d ${SOURCEDIR}/syslinux-${SYSLINUX_VERSION} ];
+    then
+        cd ${SOURCEDIR}
+        wget -O syslinux.tar.xz http://kernel.org/pub/linux/utils/boot/syslinux/syslinux-${SYSLINUX_VERSION}.tar.xz
+        tar -xvf syslinux.tar.xz && rm syslinux.tar.xz
+    fi
+    cd syslinux-${SYSLINUX_VERSION}
+    cp bios/core/isolinux.bin ${ISODIR}
+    cp bios/com32/elflink/ldlinux/ldlinux.c32 ${ISODIR}
+    cp bios/com32/libutil/libutil.c32 ${ISODIR}
+    cp bios/com32/menu/menu.c32 ${ISODIR}
+    cd ${ISODIR}
+    echo 'default kernel.gz initrd=rootfs.gz vga=791' > isolinux.cfg
+    xorriso \
+        -as mkisofs \
+        -o ${BASEDIR}/rattie_linux.iso \
+        -b isolinux.bin \
+        -c boot.cat \
+        -no-emul-boot \
+        -boot-load-size 4 \
+        -boot-info-table \
+        ./
 }
 
 test_qemu () {
@@ -230,7 +291,9 @@ test_qemu () {
 }
 
 clean_files () {
-    return 0
+    rm -rf ${SOURCEDIR}
+    rm -rf ${ROOTFSDIR}
+    rm -rf ${ISODIR}
 }
 
 # ******************************************************************************
