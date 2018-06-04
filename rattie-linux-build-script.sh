@@ -8,8 +8,8 @@
 # SETTINGS
 # ******************************************************************************
 
-SCRIPT_NAME="RATTIE LINUX Research Operating System Build Script"
-SCRIPT_VERSION="1.1-beta1"
+SCRIPT_NAME="RATTIE LINUX - Research Operating System - Build Script"
+SCRIPT_VERSION="1.1-RC1"
 LINUX_NAME="RATTIE LINUX"
 DISTRIBUTION_VERSION="2018.6"
 
@@ -60,7 +60,7 @@ show_main_menu() {
 show_dialog() {
     if [ ${#2} -le 24 ]; then
     WIDTH=24; HEIGHT=6; else
-    WIDTH=48; HEIGHT=12; fi
+    WIDTH=64; HEIGHT=14; fi
     dialog --backtitle "${SCRIPT_NAME} - ${DISTRIBUTION_VERSION} / v${SCRIPT_VERSION}" \
     --title "${1}" \
     --msgbox "${2}" ${HEIGHT} ${WIDTH}
@@ -70,7 +70,7 @@ ask_dialog() {
     dialog --stdout \
     --backtitle "${SCRIPT_NAME} - ${DISTRIBUTION_VERSION} / v${SCRIPT_VERSION}" \
     --title "${1}" \
-    --yesno "${2}" 12 48
+    --yesno "${2}" 14 64
 }
 
 # ******************************************************************************
@@ -78,7 +78,7 @@ ask_dialog() {
 # ******************************************************************************
 
 menu_introduction () {
-    show_dialog "INTRODUCTION" "Welcome to the ${SCRIPT_NAME} Research Operating System. This is a simple file that will create a working Linux distribution from scratch.\nIt will download all the sources, complie them and put everything into the ISO image.\nRead instuctions, learnd and have fun!" \
+    show_dialog "INTRODUCTION" "${LINUX_NAME} is an Research Operating System. This is a simple file that will create a working Linux distribution from scratch.\nIt will download all the sources, complie them and put everything into the ISO image.\nRead instuctions, learnd and have fun!" \
     && MENU_ITEM_SELECTED=1
     return 0
 }
@@ -220,61 +220,62 @@ build_extras () {
     # mkdir cd ${SOURCEDIR}/temprootfs
     # build_ncurses
     # build_nano
+    return 0
 }
 
 
 build_ncurses () {
-        cd ${SOURCEDIR}
-        wget -O ncurses.tar.gz https://ftp.gnu.org/pub/gnu/ncurses/ncurses-${NCURSES_VERSION}.tar.gz
-        tar -xvf ncurses.tar.gz && rm ncurses.tar.gz
+    cd ${SOURCEDIR}
+    wget -O ncurses.tar.gz https://ftp.gnu.org/pub/gnu/ncurses/ncurses-${NCURSES_VERSION}.tar.gz
+    tar -xvf ncurses.tar.gz && rm ncurses.tar.gz
 
-        cd ncurses-${NCURSES_VERSION}
-        if [ -f Makefile ] ; then
-                make -j ${JFLAG} clean
-        fi
-        sed -i '/LIBTOOL_INSTALL/d' c++/Makefile.in
-        CFLAGS="${CFLAGS}" ./configure \
-                --prefix=/usr \
-                --with-termlib \
-                --with-terminfo-dirs=/lib/terminfo \
-                --with-default-terminfo-dirs=/lib/terminfo \
-                --without-normal \
-                --without-debug \
-                --without-cxx-binding \
-                --with-abi-version=5 \
-                --enable-widec \
-                --enable-pc-files \
-                --with-shared \
-                CPPFLAGS=-I$PWD/ncurses/widechar \
-                LDFLAGS=-L$PWD/lib \
-                CPPFLAGS="-P"
+    cd ncurses-${NCURSES_VERSION}
+    if [ -f Makefile ] ; then
+            make -j ${JFLAG} clean
+    fi
+    sed -i '/LIBTOOL_INSTALL/d' c++/Makefile.in
+    CFLAGS="${CFLAGS}" ./configure \
+            --prefix=/usr \
+            --with-termlib \
+            --with-terminfo-dirs=/lib/terminfo \
+            --with-default-terminfo-dirs=/lib/terminfo \
+            --without-normal \
+            --without-debug \
+            --without-cxx-binding \
+            --with-abi-version=5 \
+            --enable-widec \
+            --enable-pc-files \
+            --with-shared \
+            CPPFLAGS=-I$PWD/ncurses/widechar \
+            LDFLAGS=-L$PWD/lib \
+            CPPFLAGS="-P"
 
-        make -j ${JFLAG}
-        make -j ${JFLAG} install DESTDIR=${SOURCEDIR}/temprootfs
+    make -j ${JFLAG}
+    make -j ${JFLAG} install DESTDIR=${SOURCEDIR}/temprootfs
 
-        cd ${SOURCEDIR}/temprootfs/usr/lib
-        ln -s libncursesw.so.5 libncurses.so.5
-        ln -s libncurses.so.5 libncurses.so
-        ln -s libtinfow.so.5 libtinfo.so.5
-        ln -s libtinfo.so.5 libtinfo.so
+    cd ${SOURCEDIR}/temprootfs/usr/lib
+    ln -s libncursesw.so.5 libncurses.so.5
+    ln -s libncurses.so.5 libncurses.so
+    ln -s libtinfow.so.5 libtinfo.so.5
+    ln -s libtinfo.so.5 libtinfo.so
 }
 
 build_nano () {
-        cd ${SOURCEDIR}
-        wget -O nano.tar.xz https://nano-editor.org/dist/v${NANO_BRANCH}/nano-$NANO_VERSION.tar.xz
-        tar -xvf nano.tar.xz && rm nano.tar.xz
+    cd ${SOURCEDIR}
+    wget -O nano.tar.xz https://nano-editor.org/dist/v${NANO_BRANCH}/nano-$NANO_VERSION.tar.xz
+    tar -xvf nano.tar.xz && rm nano.tar.xz
 
-        cd nano-$NANO_VERSION
-        if [ -f Makefile ] ; then
-                make -j ${JFLAG} clean
-        fi
-        sed -i '/LIBTOOL_INSTALL/d' c++/Makefile.in
-        CFLAGS="${CFLAGS}" ./configure \
-                --prefix=/usr \
-                LDFLAGS=-L$${SOURCEDIR}/temprootfs/usr/include
+    cd nano-$NANO_VERSION
+    if [ -f Makefile ] ; then
+            make -j ${JFLAG} clean
+    fi
+    sed -i '/LIBTOOL_INSTALL/d' c++/Makefile.in
+    CFLAGS="${CFLAGS}" ./configure \
+            --prefix=/usr \
+            LDFLAGS=-L$${SOURCEDIR}/temprootfs/usr/include
 
-        make -j ${JFLAG}
-        make -j ${JFLAG} install DESTDIR=${SOURCEDIR}/temprootfs
+    make -j ${JFLAG}
+    make -j ${JFLAG} install DESTDIR=${SOURCEDIR}/temprootfs
 }
 
 generate_rootfs () {
@@ -294,8 +295,7 @@ generate_rootfs () {
     mkdir proc
     mkdir src
     mkdir sys
-    mkdir tmp
-    mkdir home
+    mkdir tmp && chmod 1777 tmp
 
     cd etc
     touch motd
@@ -308,29 +308,46 @@ generate_rootfs () {
     echo '  ------------------------------------------ ' >> motd
     echo >> motd
 
+    touch bootscript.sh
+    echo '#!/bin/sh' >> bootscript.sh
+    echo 'dmesg -n 1' >> bootscript.sh
+    echo 'mount -t devtmpfs none /dev' >> bootscript.sh
+    echo 'mount -t proc none /proc' >> bootscript.sh
+    echo 'mount -t sysfs none /sys' >> bootscript.sh
+    echo >> bootscript.sh
+    chmod +x bootscript.sh
+
+    touch inittab
+    echo '::sysinit:/etc/bootscript.sh' >> inittab
+    echo '::restart:/sbin/init' >> inittab
+    echo '::ctrlaltdel:/sbin/reboot' >> inittab
+    echo '::once:cat /etc/motd' >> inittab
+    echo '::respawn:/bin/cttyhack /bin/sh' >> inittab
+    echo 'tty2::once:cat /etc/motd' >> inittab
+    echo 'tty2::respawn:/bin/sh' >> inittab
+    echo 'tty3::once:cat /etc/motd' >> inittab
+    echo 'tty3::respawn:/bin/sh' >> inittab
+    echo 'tty4::once:cat /etc/motd' >> inittab
+    echo 'tty4::respawn:/bin/sh' >> inittab
+    echo >> inittab
+
+    touch group
+    echo 'root:x:0:root' >> group
+    echo >> group
+
+    touch passwd
+    echo 'root:R.8MSU0Z/1ttM:0:0:Linux User,,,:/root:/bin/sh' >> passwd
+    echo >> passwd
+
     cd ${ROOTFSDIR}
+
     touch init
     echo '#!/bin/sh' >> init
-    echo 'dmesg -n 1' >> init
-    echo 'mount -t devtmpfs none /dev' >> init
-    echo 'mount -t proc none /proc' >> init
-    echo 'mount -t sysfs none /sys' >> init
-    echo 'umask 022' >> init
-    echo 'export HOME=/home' >> init
-    echo 'export PATH=/bin:/sbin:/usr/bin:/usr/sbin' >> init
-    echo 'export LD_LIBRARY_PATH="/usr/lib:/lib"' >> init
-    echo 'cat /etc/motd' >> init
-    echo 'while true' >> init
-    echo 'do' >> init
-    echo '  setsid cttyhack /bin/sh' >> init
-    echo 'done' >> init
+    echo 'exec /sbin/init' >> init
     echo >> init
-    chmod a+x init
+    chmod +x init
 
-    sudo chown -R root:root ${ROOTFSDIR}
-    rm ${ISODIR}/rootfs.gz
-
-    cd ${ROOTFSDIR}
+    chown -R root:root .
     find . | cpio -H newc -o | gzip > ${ISODIR}/rootfs.gz
 }
 
