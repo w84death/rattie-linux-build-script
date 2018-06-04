@@ -1,5 +1,32 @@
 # RATTIE LINUX Build Script
 
-Welcome to the RATTIE LINUX. This is a simple script that will create a working Linux distribution from scratch.
+    ----------------------------------- 2018.6
+                    ^..^__
+                    *,, , )_-
+        Welcome to RATTIE LINUX by kj/P1X
+    ------------------------------------------
 
-It will download all the sources, complie them and put everything into the ISO image. Have fun!
+
+This is a simple script that will create a working Linux distribution from scratch.
+
+It will download all the sources, compile them and put everything into the ISO image. Have fun!
+
+## ToC of the script
+
+0 "INTRODUCTION"
+1 "PREPARE DIRECTORIES"
+2 "BUILD KERNEL"
+3 "BUILD BUSYBOX"
+4 "BUILD EXTRAS"
+5 "GENERATE ROOTFS"
+6 "GENERATE ISO"
+7 "TEST IMAGE IN QEMU"
+8 "CLEAN FILES"
+
+## Inspiration
+
+I have a little experience in LFS and Arch. Minimal Linux Scripts is something new to me. I base my work on those projects:
+
+- [The Dao of Minimal Linux Live](http://minimal.idzona.com/the_dao_of_minimal_linux_live.txt)
+- [Minimal Linux Script](https://github.com/ivandavidov/minimal-linux-script/blob/master/minimal.sh)
+- [Minimal Linux Live](http://minimal.idzona.com)
