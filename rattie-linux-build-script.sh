@@ -9,7 +9,7 @@
 # ******************************************************************************
 
 SCRIPT_NAME="RATTIE LINUX Build Script"
-SCRIPT_VERSION="0.3"
+SCRIPT_VERSION="1.0"
 LINUX_NAME="RATTIE LINUX"
 DISTRIBUTION_VERSION="2018.6"
 
@@ -193,12 +193,10 @@ build_kernel () {
     make clean
     make defconfig
     sed -i "s/.*CONFIG_DEFAULT_HOSTNAME.*/CONFIG_DEFAULT_HOSTNAME=\"${LINUX_NAME}\"/" .config
+    sed -i "s/.*CONFIG_FB_VESA.*/CONFIG_FB_VESA=y/" .config
     sed -i "s/.*LOGO_LINUX_CLUT224.*/LOGO_LINUX_CLUT224=y/" .config
     cp ${BASEDIR}/rattie_logo_224.ppm drivers/video/logo/logo_linux_clut224.ppm
     sed -i "s/.*CONFIG_OVERLAY_FS.*/CONFIG_OVERLAY_FS=y/" .config
-
-    # make vmlinux -j ${JFLAG}
-    #cp vmlinux ${ISODIR}/kernel.gz
 
     make bzImage -j ${JFLAG}
     cp arch/x86/boot/bzImage ${ISODIR}/kernel.gz
@@ -222,8 +220,9 @@ build_extras () {
 }
 
 generate_rootfs () {
-    cd ${SOURCEDIR}/busybox-${BUSYBOX_VERSION}
-    cp -R _install ${ROOTFSDIR}
+    rm -rf ${ROOTFSDIR} && mkdir  ${ROOTFSDIR}
+    cd ${SOURCEDIR}/busybox-${BUSYBOX_VERSION}/_install
+    cp -R . ${ROOTFSDIR}
     cd ${ROOTFSDIR}
     rm -f linuxrc
     mkdir dev
@@ -235,11 +234,11 @@ generate_rootfs () {
     cd etc
     touch motd
     echo >> motd
-    echo '  #########################################' >> motd
-    echo '  #                                       #' >> motd
-    echo '  #  Welcome to "RATTIE LINUX" by kj/P1X  #' >> motd
-    echo '  #                                       #' >> motd
-    echo '  #########################################' >> motd
+    echo '  ----------------------------------- 2018.6 ' >> motd
+    echo '                   ^..^__                    ' >> motd
+    echo '                   *,, , )_-                 ' >> motd
+    echo '      Welcome to RATTIE LINUX by kj/P1X      ' >> motd
+    echo '  ------------------------------------------ ' >> motd
     echo >> motd
     cd ..
     touch init
@@ -254,22 +253,20 @@ generate_rootfs () {
     echo '  setsid cttyhack /bin/sh' >> init
     echo 'done' >> init
     echo >> init
-    chmod +x init
-
-    rm -f ${ISODIR}/rootfs.cpio.gz
-    cd ${ROOTFSDIR}
-    find . | cpio -H newc -o | gzip > ${ISODIR}/rootfs.cpio.gz
+    chmod a+x init
+    chown -R root:root .
+    find . | cpio -H newc -o | gzip > ${ISODIR}/rootfs.gz
 }
 
 generate_iso () {
-    if [! -d ${SOURCEDIR}/syslinux-${SYSLINUX_VERSION} ];
+    if [ ! -d ${SOURCEDIR}/syslinux-${SYSLINUX_VERSION} ];
     then
         cd ${SOURCEDIR}
         wget -O syslinux.tar.xz http://kernel.org/pub/linux/utils/boot/syslinux/syslinux-${SYSLINUX_VERSION}.tar.xz
         tar -xvf syslinux.tar.xz && rm syslinux.tar.xz
     fi
     cd syslinux-${SYSLINUX_VERSION}
-    cp bios/core/isolinux.bin ${ISODIR}
+    cp bios/core/isolinux.bin ${ISODIR}/
     cp bios/com32/elflink/ldlinux/ldlinux.c32 ${ISODIR}
     cp bios/com32/libutil/libutil.c32 ${ISODIR}
     cp bios/com32/menu/menu.c32 ${ISODIR}
@@ -287,7 +284,11 @@ generate_iso () {
 }
 
 test_qemu () {
-    return 0
+    cd ${BASEDIR}
+    if [ -f rattie_linux.iso ];
+    then
+        qemu-system-x86_64 -m 128M -cdrom rattie_linux.iso -boot d -vga std
+    fi
 }
 
 clean_files () {
