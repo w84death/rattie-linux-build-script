@@ -9,19 +9,21 @@
 # ******************************************************************************
 
 SCRIPT_NAME="RATTIE LINUX Build Script"
-SCRIPT_VERSION="0.1"
+SCRIPT_VERSION="0.2"
 LINUX_NAME="RATTIE LINUX"
 DISTRIBUTION_VERSION="2018.6"
+
 ARCH="x86_64"
-KERNEL_VERSION="4.17"
-KERNEL_BRANCH="4.x"
+KERNEL_BRANCH="3.x"
+KERNEL_VERSION="3.16.56"
 BUSYBOX_VERSION="1.28.4"
 SYSLINUX_VERSION="6.03"
-NCURSES_VERSION="6.1"
-NANO_VERSION="2.9.8"
-NANO_BRANCH="2.9"
-LINKS_VERSION="2.16"
-UTIL_VERSION="2.32"
+
+# NCURSES_VERSION="6.1"
+# NANO_VERSION="2.9.8"
+# NANO_BRANCH="2.9"
+# LINKS_VERSION="2.16"
+# UTIL_VERSION="2.32"
 
 BASEDIR=`realpath --no-symlinks $PWD`
 SOURCEDIR=${BASEDIR}/sources
@@ -39,9 +41,9 @@ JFLAG=4
 
 show_main_menu() {
     dialog --backtitle "${SCRIPT_NAME} - ${DISTRIBUTION_VERSION} / v${SCRIPT_VERSION}" \
-    --title "${SCRIPT_NAME} MENU" \
+    --title "MAIN MENU" \
     --default-item "${1}" \
-    --menu "Create the ${LINUX_NAME} Operating System. Run each step in order." 18 64 10 \
+    --menu "The ${LINUX_NAME} Operating System by kj/P1X." 18 64 10 \
     0 "INTRODUCTION" \
     1 "PREPARE DIRECTORIES" \
     2 "BUILD KERNEL" \
@@ -89,14 +91,14 @@ menu_prepare_dirs () {
 }
 
 menu_build_kernel () {
-    ask_dialog "BUILD KERNEL" "Build Linux Kernel ${KERNEL_VERSION}" \
+    ask_dialog "BUILD KERNEL" "Linux Kernel ${KERNEL_VERSION}:\n - download and extract\n - configure\n - build" \
     && build_kernel \
     && MENU_ITEM_SELECTED=3 \
     && show_dialog "BUILD KERNEL" "Done."
     return 0
 }
 menu_build_busybox () {
-    ask_dialog "BUILD BUSYBOX" "Build BusyBox ${BUSYBOX_VERSION}" \
+    ask_dialog "BUILD BUSYBOX" "Build BusyBox ${BUSYBOX_VERSION}:\n - download and extract\n - configure\n - build" \
     && build_busybox \
     && MENU_ITEM_SELECTED=4 \
     && show_dialog "BUILD BUSYBOX" "Done."
@@ -104,7 +106,7 @@ menu_build_busybox () {
 }
 
 menu_build_extras () {
-    ask_dialog "BUILD EXTRAS" "Build extra packages like ncurses, nano, links." \
+    ask_dialog "BUILD EXTRAS" "Build ncurses, nano, links each doing:\n - download and extract\n - configure\n - build" \
     && build_extras \
     && MENU_ITEM_SELECTED=5 \
     && show_dialog "BUILD EXTRAS" "Done."
@@ -112,7 +114,7 @@ menu_build_extras () {
 }
 
 menu_generate_rootfs () {
-    ask_dialog "GENERATE ROOTFS" "Generate root file system." \
+    ask_dialog "GENERATE ROOTFS" "Generate root file system:\n - compress file tree" \
     && generate_rootfs \
     && MENU_ITEM_SELECTED=6 \
     && show_dialog "GENERATE ROOTFS" "Done."
@@ -120,7 +122,7 @@ menu_generate_rootfs () {
 }
 
 menu_generate_iso () {
-    ask_dialog "GENERATE ISO" "Generate ISO image." \
+    ask_dialog "GENERATE ISO" "Generate ISO image:\n - copy nessesary files to ISO directory\n - build image" \
     && generate_iso \
     && MENU_ITEM_SELECTED=7 \
     && show_dialog "GENERATE ISO" "Done."
@@ -128,7 +130,7 @@ menu_generate_iso () {
 }
 
 menu_qemu () {
-    ask_dialog "TEST IMAGE IN QEMU" "Test generated image on emulated computer (QEMU)." \
+    ask_dialog "TEST IMAGE IN QEMU" "Test generated image on emulated computer (QEMU):\n - x86_64\n - 128MB ram\n - cdrom" \
     && test_qemu \
     && MENU_ITEM_SELECTED=8 \
     && show_dialog "TEST IMAGE IN QEMU" "Done."
@@ -183,11 +185,32 @@ prepare_dirs () {
 }
 
 build_kernel () {
-    return 0
+    cd ${SOURCEDIR}
+    wget -O kernel.tar.xz https://cdn.kernel.org/pub/linux/kernel/v${KERNEL_BRANCH}/linux-${KERNEL_VERSION}.tar.xz
+    tar -xvf kernel.tar.xz && rm kernel.tar.xz
+
+    cd linux-${KERNEL_VERSION}
+    make clean
+    make defconfig
+    sed -i "s/.*CONFIG_DEFAULT_HOSTNAME.*/CONFIG_DEFAULT_HOSTNAME=\"${LINUX_NAME}\"/" .config
+    sed -i "s/.*LOGO_LINUX_CLUT224.*/LOGO_LINUX_CLUT224=y/" .config
+    cp ${BASEDIR}/rattie_logo_224.ppm drivers/video/logo/logo_linux_clut224.ppm
+    sed -i "s/.*CONFIG_OVERLAY_FS.*/CONFIG_OVERLAY_FS=y/" .config
+
+    make vmlinux -j ${JFLAG}
+    #cp vmlinux ${ISODIR}/kernel.gz
+
+    # make bzImage -j ${JFLAG}
+    # cp arch/x86/boot/bzImage ${ISODIR}/kernel.gz
 }
 
 build_busybox () {
-    return 0
+    cd ${SOURCEDIR}
+    wget -O busybox.tar.bz2 http://busybox.net/downloads/busybox-${BUSYBOX_VERSION}.tar.bz2
+    tar -xvf busybox.tar.bz2 && rm busybox.tar.bz2
+
+    cd busybox-${BUSYBOX_VERSION}
+
 }
 
 build_extras () {
