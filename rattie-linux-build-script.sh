@@ -9,10 +9,10 @@
 # ******************************************************************************
 
 SCRIPT_NAME="RATTIE LINUX - Research Operating System - Build Script"
-SCRIPT_VERSION="1.1-RC2"
+SCRIPT_VERSION="1.1-RC3"
 LINUX_NAME="RATTIE LINUX"
 DISTRIBUTION_VERSION="2018.6"
-
+ISO_FILENAME="rattie_linux-${SCRIPT_VERSION}.iso"
 ARCH="x86_64"
 KERNEL_BRANCH="3.x"
 KERNEL_VERSION="3.16.56"
@@ -270,10 +270,9 @@ build_nano () {
     if [ -f Makefile ] ; then
             make -j ${JFLAG} clean
     fi
-    sed -i '/LIBTOOL_INSTALL/d' c++/Makefile.in
     CFLAGS="${CFLAGS}" ./configure \
-            --prefix=/usr \
-            LDFLAGS=-L$PWD/lib
+        --prefix=/usr \
+        LDFLAGS=-L=${SOURCEDIR}/temprootfs/usr/include
 
     make -j ${JFLAG}
     make -j ${JFLAG} install DESTDIR=${SOURCEDIR}/temprootfs
@@ -285,8 +284,8 @@ generate_rootfs () {
     cp -R . ${ROOTFSDIR}
     if [ -d ${SOURCEDIR}/temprootfs ];
     then
-        rsync -av ${SOURCEDIR}/temprootfs/ ${ROOTFSDIR}/
-        #cp ${SOURCEDIR}/temprootfs/usr/bin/nano ${ROOTFSDIR}/usr/bin/nano
+        #rsync -av ${SOURCEDIR}/temprootfs/ ${ROOTFSDIR}/
+        cp -rlR ${SOURCEDIR}/temprootfs/* ${ROOTFSDIR}/
     fi
     cd ${ROOTFSDIR}
     rm -f linuxrc
@@ -384,11 +383,11 @@ generate_iso () {
     echo ' KERNEL kernel.gz ' >> isolinux.cfg
     echo ' APPEND initrd=rootfs.gz vga=ask ' >> isolinux.cfg
 
-    rm ${BASEDIR}/rattie_linux.iso
+    rm ${BASEDIR}/${ISO_FILENAME}
 
     xorriso \
         -as mkisofs \
-        -o ${BASEDIR}/rattie_linux.iso \
+        -o ${BASEDIR}/${ISO_FILENAME} \
         -b isolinux.bin \
         -c boot.cat \
         -no-emul-boot \
@@ -399,9 +398,9 @@ generate_iso () {
 
 test_qemu () {
     cd ${BASEDIR}
-    if [ -f rattie_linux.iso ];
+    if [ -f ${ISO_FILENAME} ];
     then
-        qemu-system-x86_64 -m 128M -cdrom rattie_linux.iso -boot d -vga std
+        qemu-system-x86_64 -m 128M -cdrom ${ISO_FILENAME} -boot d -vga std
     fi
 }
 
