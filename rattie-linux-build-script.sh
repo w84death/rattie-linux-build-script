@@ -9,7 +9,7 @@
 # ******************************************************************************
 
 SCRIPT_NAME="RATTIE LINUX - Research Operating System - Build Script"
-SCRIPT_VERSION="1.1-RC1"
+SCRIPT_VERSION="1.1-RC2"
 LINUX_NAME="RATTIE LINUX"
 DISTRIBUTION_VERSION="2018.6"
 
@@ -217,15 +217,15 @@ build_busybox () {
 }
 
 build_extras () {
-    # mkdir cd ${SOURCEDIR}/temprootfs
-    # build_ncurses
-    # build_nano
-    return 0
+    mkdir ${SOURCEDIR}/temprootfs
+    build_ncurses
+    build_nano
 }
 
 
 build_ncurses () {
     cd ${SOURCEDIR}
+    rm -rf ncurses-${NCURSES_VERSION}
     wget -O ncurses.tar.gz https://ftp.gnu.org/pub/gnu/ncurses/ncurses-${NCURSES_VERSION}.tar.gz
     tar -xvf ncurses.tar.gz && rm ncurses.tar.gz
 
@@ -262,6 +262,7 @@ build_ncurses () {
 
 build_nano () {
     cd ${SOURCEDIR}
+    rm -rf nano-$NANO_VERSION
     wget -O nano.tar.xz https://nano-editor.org/dist/v${NANO_BRANCH}/nano-$NANO_VERSION.tar.xz
     tar -xvf nano.tar.xz && rm nano.tar.xz
 
@@ -272,7 +273,7 @@ build_nano () {
     sed -i '/LIBTOOL_INSTALL/d' c++/Makefile.in
     CFLAGS="${CFLAGS}" ./configure \
             --prefix=/usr \
-            LDFLAGS=-L$${SOURCEDIR}/temprootfs/usr/include
+            LDFLAGS=-L$PWD/lib
 
     make -j ${JFLAG}
     make -j ${JFLAG} install DESTDIR=${SOURCEDIR}/temprootfs
@@ -284,8 +285,8 @@ generate_rootfs () {
     cp -R . ${ROOTFSDIR}
     if [ -d ${SOURCEDIR}/temprootfs ];
     then
-    cd ${SOURCEDIR}/temprootfs
-    cp -R . ${ROOTFSDIR}
+        rsync -av ${SOURCEDIR}/temprootfs/ ${ROOTFSDIR}/
+        #cp ${SOURCEDIR}/temprootfs/usr/bin/nano ${ROOTFSDIR}/usr/bin/nano
     fi
     cd ${ROOTFSDIR}
     rm -f linuxrc
