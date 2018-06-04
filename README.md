@@ -23,6 +23,12 @@ It will download all the sources, compile them and put everything into the ISO i
     7 "TEST IMAGE IN QEMU"
     8 "CLEAN FILES"
 
+## Media
+
+![The script](https://i.imgur.com/hijWGm6.png)
+
+![Rattie Linux in action](https://i.imgur.com/3jVu9Jy.png)
+
 ## Inspiration
 
 I have a little experience in LFS and Arch. Minimal Linux Scripts is something new to me. I base my work on those projects:
