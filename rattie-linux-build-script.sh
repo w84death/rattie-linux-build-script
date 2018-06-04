@@ -8,8 +8,8 @@
 # SETTINGS
 # ******************************************************************************
 
-SCRIPT_NAME="RATTIE LINUX Build Script"
-SCRIPT_VERSION="1.0"
+SCRIPT_NAME="RATTIE LINUX Research Operating System Build Script"
+SCRIPT_VERSION="1.1-beta1"
 LINUX_NAME="RATTIE LINUX"
 DISTRIBUTION_VERSION="2018.6"
 
@@ -18,12 +18,13 @@ KERNEL_BRANCH="3.x"
 KERNEL_VERSION="3.16.56"
 BUSYBOX_VERSION="1.28.4"
 SYSLINUX_VERSION="6.03"
+NCURSES_VERSION="6.1"
+NANO_VERSION="2.9.8"
+NANO_BRANCH="2.9"
 
-# NCURSES_VERSION="6.1"
-# NANO_VERSION="2.9.8"
-# NANO_BRANCH="2.9"
+# FIGLET_VERSION="2.2.5"
+# ftp://ftp.figlet.org/pub/figlet/program/unix/figlet-${FIGLET_VERSION}.tar.gz
 # LINKS_VERSION="2.16"
-# UTIL_VERSION="2.32"
 
 BASEDIR=`realpath --no-symlinks $PWD`
 SOURCEDIR=${BASEDIR}/sources
@@ -43,7 +44,7 @@ show_main_menu() {
     dialog --backtitle "${SCRIPT_NAME} - ${DISTRIBUTION_VERSION} / v${SCRIPT_VERSION}" \
     --title "MAIN MENU" \
     --default-item "${1}" \
-    --menu "The ${LINUX_NAME} Operating System by kj/P1X." 18 64 10 \
+    --menu "The ${LINUX_NAME} Research Operating System by kj/P1X." 18 64 10 \
     0 "INTRODUCTION" \
     1 "PREPARE DIRECTORIES" \
     2 "BUILD KERNEL" \
@@ -77,7 +78,7 @@ ask_dialog() {
 # ******************************************************************************
 
 menu_introduction () {
-    show_dialog "INTRODUCTION" "Welcome to the ${SCRIPT_NAME}. This is a simple file that will create a working Linux distribution from scratch.\nIt will download all the sources, complie them and put everything into the ISO image. Have fun!" \
+    show_dialog "INTRODUCTION" "Welcome to the ${SCRIPT_NAME} Research Operating System. This is a simple file that will create a working Linux distribution from scratch.\nIt will download all the sources, complie them and put everything into the ISO image.\nRead instuctions, learnd and have fun!" \
     && MENU_ITEM_SELECTED=1
     return 0
 }
@@ -216,37 +217,108 @@ build_busybox () {
 }
 
 build_extras () {
-    show_dialog "DEMO" "Function is not available in this version of the script."
+    # mkdir cd ${SOURCEDIR}/temprootfs
+    # build_ncurses
+    # build_nano
+}
+
+
+build_ncurses () {
+        cd ${SOURCEDIR}
+        wget -O ncurses.tar.gz https://ftp.gnu.org/pub/gnu/ncurses/ncurses-${NCURSES_VERSION}.tar.gz
+        tar -xvf ncurses.tar.gz && rm ncurses.tar.gz
+
+        cd ncurses-${NCURSES_VERSION}
+        if [ -f Makefile ] ; then
+                make -j ${JFLAG} clean
+        fi
+        sed -i '/LIBTOOL_INSTALL/d' c++/Makefile.in
+        CFLAGS="${CFLAGS}" ./configure \
+                --prefix=/usr \
+                --with-termlib \
+                --with-terminfo-dirs=/lib/terminfo \
+                --with-default-terminfo-dirs=/lib/terminfo \
+                --without-normal \
+                --without-debug \
+                --without-cxx-binding \
+                --with-abi-version=5 \
+                --enable-widec \
+                --enable-pc-files \
+                --with-shared \
+                CPPFLAGS=-I$PWD/ncurses/widechar \
+                LDFLAGS=-L$PWD/lib \
+                CPPFLAGS="-P"
+
+        make -j ${JFLAG}
+        make -j ${JFLAG} install DESTDIR=${SOURCEDIR}/temprootfs
+
+        cd ${SOURCEDIR}/temprootfs/usr/lib
+        ln -s libncursesw.so.5 libncurses.so.5
+        ln -s libncurses.so.5 libncurses.so
+        ln -s libtinfow.so.5 libtinfo.so.5
+        ln -s libtinfo.so.5 libtinfo.so
+}
+
+build_nano () {
+        cd ${SOURCEDIR}
+        wget -O nano.tar.xz https://nano-editor.org/dist/v${NANO_BRANCH}/nano-$NANO_VERSION.tar.xz
+        tar -xvf nano.tar.xz && rm nano.tar.xz
+
+        cd nano-$NANO_VERSION
+        if [ -f Makefile ] ; then
+                make -j ${JFLAG} clean
+        fi
+        sed -i '/LIBTOOL_INSTALL/d' c++/Makefile.in
+        CFLAGS="${CFLAGS}" ./configure \
+                --prefix=/usr \
+                LDFLAGS=-L$${SOURCEDIR}/temprootfs/usr/include
+
+        make -j ${JFLAG}
+        make -j ${JFLAG} install DESTDIR=${SOURCEDIR}/temprootfs
 }
 
 generate_rootfs () {
     rm -rf ${ROOTFSDIR} && mkdir  ${ROOTFSDIR}
     cd ${SOURCEDIR}/busybox-${BUSYBOX_VERSION}/_install
     cp -R . ${ROOTFSDIR}
+    if [ -d ${SOURCEDIR}/temprootfs ];
+    then
+    cd ${SOURCEDIR}/temprootfs
+    cp -R . ${ROOTFSDIR}
+    fi
     cd ${ROOTFSDIR}
     rm -f linuxrc
+
     mkdir dev
     mkdir etc
     mkdir proc
     mkdir src
     mkdir sys
     mkdir tmp
+    mkdir home
+
     cd etc
     touch motd
     echo >> motd
-    echo '  ----------------------------------- 2018.6 ' >> motd
+    echo ' ------------------------------------ 2018.6 ' >> motd
     echo '                   ^..^__                    ' >> motd
     echo '                   *,, , )_-                 ' >> motd
-    echo '      Welcome to RATTIE LINUX by kj/P1X      ' >> motd
+    echo '                 RATTIE LINUX                ' >> motd
+    echo '          Research Operating System          ' >> motd
     echo '  ------------------------------------------ ' >> motd
     echo >> motd
-    cd ..
+
+    cd ${ROOTFSDIR}
     touch init
     echo '#!/bin/sh' >> init
     echo 'dmesg -n 1' >> init
     echo 'mount -t devtmpfs none /dev' >> init
     echo 'mount -t proc none /proc' >> init
     echo 'mount -t sysfs none /sys' >> init
+    echo 'umask 022' >> init
+    echo 'export HOME=/home' >> init
+    echo 'export PATH=/bin:/sbin:/usr/bin:/usr/sbin' >> init
+    echo 'export LD_LIBRARY_PATH="/usr/lib:/lib"' >> init
     echo 'cat /etc/motd' >> init
     echo 'while true' >> init
     echo 'do' >> init
@@ -254,7 +326,11 @@ generate_rootfs () {
     echo 'done' >> init
     echo >> init
     chmod a+x init
-    chown -R root:root .
+
+    sudo chown -R root:root ${ROOTFSDIR}
+    rm ${ISODIR}/rootfs.gz
+
+    cd ${ROOTFSDIR}
     find . | cpio -H newc -o | gzip > ${ISODIR}/rootfs.gz
 }
 
@@ -265,13 +341,33 @@ generate_iso () {
         wget -O syslinux.tar.xz http://kernel.org/pub/linux/utils/boot/syslinux/syslinux-${SYSLINUX_VERSION}.tar.xz
         tar -xvf syslinux.tar.xz && rm syslinux.tar.xz
     fi
-    cd syslinux-${SYSLINUX_VERSION}
+    cd ${SOURCEDIR}/syslinux-${SYSLINUX_VERSION}
     cp bios/core/isolinux.bin ${ISODIR}/
     cp bios/com32/elflink/ldlinux/ldlinux.c32 ${ISODIR}
     cp bios/com32/libutil/libutil.c32 ${ISODIR}
     cp bios/com32/menu/menu.c32 ${ISODIR}
     cd ${ISODIR}
-    echo 'default kernel.gz initrd=rootfs.gz vga=791' > isolinux.cfg
+    rm isolinux.cfg && touch isolinux.cfg
+    echo 'default kernel.gz initrd=rootfs.gz vga=791' >> isolinux.cfg
+    echo 'UI menu.c32 ' >> isolinux.cfg
+    echo 'PROMPT 0 ' >> isolinux.cfg
+    echo >> isolinux.cfg
+    echo 'MENU TITLE RATTIE LINUX 2018.6: ' >> isolinux.cfg
+    echo 'TIMEOUT 60 ' >> isolinux.cfg
+    echo 'DEFAULT rattie ' >> isolinux.cfg
+    echo >> isolinux.cfg
+    echo 'LABEL rattie                      ' >> isolinux.cfg
+    echo ' MENU LABEL RATTIE HiRES          ' >> isolinux.cfg
+    echo ' KERNEL kernel.gz                 ' >> isolinux.cfg
+    echo ' APPEND initrd=rootfs.gz vga=791 ' >> isolinux.cfg
+    echo >> isolinux.cfg
+    echo 'LABEL rattie_vga ' >> isolinux.cfg
+    echo ' MENU LABEL RATTIE CHOOSE RES ' >> isolinux.cfg
+    echo ' KERNEL kernel.gz ' >> isolinux.cfg
+    echo ' APPEND initrd=rootfs.gz vga=ask ' >> isolinux.cfg
+
+    rm ${BASEDIR}/rattie_linux.iso
+
     xorriso \
         -as mkisofs \
         -o ${BASEDIR}/rattie_linux.iso \
