@@ -1,9 +1,11 @@
-# RATTIE LINUX Build Script
+# RATTIE LINUX Research Operating System - Build Script
 
                    ^..^__  
                    *,, , )_- 
                  RATTIE LINUX 
            Research Operating System
+    ------------------------------------------
+       B A S H    B U I L D    S C R I P T
     ------------------------------------------
 
 
