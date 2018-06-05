@@ -1,15 +1,24 @@
 # RATTIE LINUX Build Script
 
-    ----------------------------------- 2018.6
-                    ^..^__
-                    *,, , )_-
-        Welcome to RATTIE LINUX by kj/P1X
+                   ^..^__  
+                   *,, , )_- 
+                 RATTIE LINUX 
+           Research Operating System
     ------------------------------------------
 
 
 This is a simple script that will create a working Linux distribution from scratch.
 
 It will download all the sources, compile them and put everything into the ISO image. Have fun!
+
+Version **2018.6 v1.1**:
+
+- Linux **3.16.56**
+- BusyBox **1.28.4**
+- SysLinux **6.03**
+- Extras: ncurses 6.1, nano 2.9.8 (broken atm)
+
+Final ISO size: **10.1 MB** (10,094,592 bytes)
 
 ## ToC of the script
 
@@ -25,9 +34,15 @@ It will download all the sources, compile them and put everything into the ISO i
 
 ## Media
 
-![The script](https://i.imgur.com/hijWGm6.png)
+![The script - main menu](https://i.imgur.com/Ch8PRfN.png)
 
-![Rattie Linux in action](https://i.imgur.com/3jVu9Jy.png)
+![The script - introduction](https://i.imgur.com/su6xgcC.png)
+
+![Rattie Linux in action - boot](https://i.imgur.com/om6mM9Y.png)
+
+![Rattie Linux in action - login](https://i.imgur.com/4rDYj8H.png)
+
+![Rattie Linux in action - uname](https://i.imgur.com/k2sHOCo.png)
 
 ## Inspiration
 
