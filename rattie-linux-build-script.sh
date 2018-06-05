@@ -9,22 +9,24 @@
 # ******************************************************************************
 
 SCRIPT_NAME="RATTIE LINUX - Research Operating System - Build Script"
-SCRIPT_VERSION="1.1"
+SCRIPT_VERSION="1.2"
 LINUX_NAME="RATTIE LINUX"
 DISTRIBUTION_VERSION="2018.6"
 ISO_FILENAME="rattie_linux-${SCRIPT_VERSION}.iso"
 
+# BASE
 KERNEL_BRANCH="3.x"
 KERNEL_VERSION="3.16.56"
 BUSYBOX_VERSION="1.28.4"
 SYSLINUX_VERSION="6.03"
+
+# EXTRAS
+KBD_VERSION="2.0.4"
 NCURSES_VERSION="6.1"
 NANO_VERSION="2.9.8"
 NANO_BRANCH="2.9"
-
-# FIGLET_VERSION="2.2.5"
-# ftp://ftp.figlet.org/pub/figlet/program/unix/figlet-${FIGLET_VERSION}.tar.gz
-# LINKS_VERSION="2.16"
+FIGLET_VERSION="2.2.5"
+LINKS_VERSION="2.16"
 
 BASEDIR=`realpath --no-symlinks $PWD`
 SOURCEDIR=${BASEDIR}/sources
@@ -47,7 +49,7 @@ show_main_menu () {
     dialog --backtitle "${SCRIPT_NAME} - ${DISTRIBUTION_VERSION} / v${SCRIPT_VERSION}" \
     --title "MAIN MENU" \
     --default-item "${1}" \
-    --menu "It's small, it's fast and it's cute.\nIt is ${LINUX_NAME} Research Operating System." 18 64 10 \
+    --menu "It's small, it's fast and it's cute.\nIt is ${LINUX_NAME} Research Operating System v${SCRIPT_VERSION}" 18 64 10 \
     0 "INTRODUCTION" \
     1 "PREPARE DIRECTORIES" \
     2 "BUILD KERNEL" \
@@ -79,7 +81,7 @@ ask_dialog () {
 check_error_dialog () {
     if [ $? -gt 0 ];
     then
-        show_dialog "An error occured ;o" "There was a problem with ${1}"
+        show_dialog "An error occured ;o" "There was a problem with ${1}.\nCheck the console output. Fix the problem and come back to the last step."
         exit
     fi
 }
@@ -118,7 +120,7 @@ menu_build_busybox () {
 }
 
 menu_build_extras () {
-    ask_dialog "BUILD EXTRAS" "Build ncurses and nano (not working).\n Recipe for each:\n - download and extract\n - configure\n - build" \
+    ask_dialog "BUILD EXTRAS" "Build additional software.\n - kbd\n - fidglet\n - ncurses\n - nano" \
     && build_extras \
     && MENU_ITEM_SELECTED=5 \
     && show_dialog "BUILD EXTRAS" "Done."
@@ -202,18 +204,18 @@ build_kernel () {
     tar -xvf kernel.tar.xz && rm kernel.tar.xz
 
     cd linux-${KERNEL_VERSION}
-    make ARCH=${ARCH} clean
-    make ARCH=${ARCH} defconfig
+    make clean
+    make defconfig \
+        -j ${JFLAG}
     sed -i "s/.*CONFIG_DEFAULT_HOSTNAME.*/CONFIG_DEFAULT_HOSTNAME=\"${LINUX_NAME}\"/" .config
     sed -i "s/.*CONFIG_FB_VESA.*/CONFIG_FB_VESA=y/" .config
     sed -i "s/.*LOGO_LINUX_CLUT224.*/LOGO_LINUX_CLUT224=y/" .config
     cp ${BASEDIR}/rattie_logo_224.ppm drivers/video/logo/logo_linux_clut224.ppm
     sed -i "s/.*CONFIG_OVERLAY_FS.*/CONFIG_OVERLAY_FS=y/" .config
 
-    make ARCH=${ARCH} -j ${JFLAG} bzImage
-    # make ARCH=${ARCH} modules -j 2
-    # make INSTALL_MOD_PATH=${SOURCEDIR}/temprootfs modules_install
-    cp arch/x86/boot/bzImage ${ISODIR}/kernel.gz
+    make bzImage \
+        -j ${JFLAG}
+     cp arch/x86/boot/bzImage ${ISODIR}/kernel.gz
 
     check_error_dialog "linux-${KERNEL_VERSION}"
 }
@@ -225,20 +227,65 @@ build_busybox () {
 
     cd busybox-${BUSYBOX_VERSION}
     make clean
-    make ARCH=${ARCH} defconfig
-    sed -i "s/.*CONFIG_STATIC.*/CONFIG_STATIC=y/" .config
-    make ARCH=${ARCH} -j ${JFLAG} busybox
-    make install
+    make defconfig
+    sed -i 's|.*CONFIG_STATIC.*|CONFIG_STATIC=y|' .config
+    make busybox \
+        -j ${JFLAG}
+
+    make install \
+        -j ${JFLAG}
+
+    rm -rf ${ROOTFSDIR} && mkdir ${ROOTFSDIR}
+    cd _install
+    cp -R . ${ROOTFSDIR}
 
     check_error_dialog "busybox-${BUSYBOX_VERSION}"
 }
 
 build_extras () {
-    mkdir ${SOURCEDIR}/temprootfs
     build_ncurses
+    build_kbd
     build_nano
+    build_figlet
+    check_error_dialog "Building extras"
 }
 
+build_kbd () {
+    cd ${SOURCEDIR}
+    rm -rf kbd-${KBD_VERSION}
+    wget -O kbd.tar.gz https://www.kernel.org/pub/linux/utils/kbd/kbd-${KBD_VERSION}.tar.gz
+    tar -xvf kbd.tar.gz && rm kbd.tar.gz
+
+    cd kbd-${KBD_VERSION}
+    if [ -f Makefile ] ; then
+            make -j ${JFLAG} clean
+    fi
+    CFLAGS="$CFLAGS" ./configure \
+        --prefix=/usr \
+        --disable-vlock
+
+    make ARCH=${ARCH} -j ${JFLAG}
+    make -j ${JFLAG} install DESTDIR=${ROOTFSDIR}
+
+    check_error_dialog "kbd-${KBD_VERSION}"
+}
+
+build_figlet () {
+    cd ${SOURCEDIR}
+    rm -rf figlet-${FIGLET_VERSION}
+    wget -O figlet.tar.gz ftp://ftp.figlet.org/pub/figlet/program/unix/figlet-${FIGLET_VERSION}.tar.gz
+    tar -xvf figlet.tar.gz && rm figlet.tar.gz
+
+    cd figlet-${FIGLET_VERSION}
+    if [ -f Makefile ] ; then
+        make -j ${JFLAG} clean
+    fi
+
+    sed -i 's|/usr/local|'${ROOTFSDIR}/usr'|g' Makefile
+    make ARCH=${ARCH} -j ${JFLAG} install
+
+    check_error_dialog "figlet-${FIGLET_VERSION}"
+}
 
 build_ncurses () {
     cd ${SOURCEDIR}
@@ -248,33 +295,33 @@ build_ncurses () {
 
     cd ncurses-${NCURSES_VERSION}
     if [ -f Makefile ] ; then
-            make -j ${JFLAG} clean
+        make -j ${JFLAG} clean
     fi
     sed -i '/LIBTOOL_INSTALL/d' c++/Makefile.in
     CFLAGS="${CFLAGS}" ./configure \
-            --prefix=/usr \
-            --with-termlib \
-            --with-terminfo-dirs=/lib/terminfo \
-            --with-default-terminfo-dirs=/lib/terminfo \
-            --without-normal \
-            --without-debug \
-            --without-cxx-binding \
-            --with-abi-version=5 \
-            --enable-widec \
-            --enable-pc-files \
-            --with-shared \
-            CPPFLAGS=-I$PWD/ncurses/widechar \
-            LDFLAGS=-L$PWD/lib \
-            CPPFLAGS="-P"
+        --prefix=/usr \
+        --with-termlib \
+        --with-terminfo-dirs=/lib/terminfo \
+        --with-default-terminfo-dirs=/lib/terminfo \
+        --without-normal \
+        --without-debug \
+        --without-cxx-binding \
+        --with-abi-version=5 \
+        --enable-widec \
+        --enable-pc-files \
+        --with-shared \
+        CPPFLAGS=-I$PWD/ncurses/widechar \
+        LDFLAGS=-L$PWD/lib \
+        CPPFLAGS="-P"
 
     make ARCH=${ARCH} -j ${JFLAG}
-    make -j ${JFLAG} install DESTDIR=${SOURCEDIR}/temprootfs
+    make -j ${JFLAG} install DESTDIR=${ROOTFSDIR}
 
-    cd ${SOURCEDIR}/temprootfs/usr/lib
-    ln -s libncursesw.so.5 libncurses.so.5
-    ln -s libncurses.so.5 libncurses.so
-    ln -s libtinfow.so.5 libtinfo.so.5
-    ln -s libtinfo.so.5 libtinfo.so
+    # cd ${SOURCEDIR}/temprootfs/usr/lib
+    # ln -s libncursesw.so.5 libncurses.so.5
+    # ln -s libncurses.so.5 libncurses.so
+    # ln -s libtinfow.so.5 libtinfo.so.5
+    # ln -s libtinfo.so.5 libtinfo.so
 
     check_error_dialog "ncurses-${NCURSES_VERSION}"
 }
@@ -291,23 +338,15 @@ build_nano () {
     fi
     CFLAGS="${CFLAGS}" ./configure \
         --prefix=/usr \
-        LDFLAGS=-L=${SOURCEDIR}/temprootfs/usr/include
+        LDFLAGS=-L$PWD/lib
 
     make ARCH=${ARCH} -j ${JFLAG}
-    make -j ${JFLAG} install DESTDIR=${SOURCEDIR}/temprootfs
+    make -j ${JFLAG} install DESTDIR=${ROOTFSDIR}
 
     check_error_dialog "nano-${NANO_VERSION}"
 }
 
 generate_rootfs () {
-    rm -rf ${ROOTFSDIR} && mkdir  ${ROOTFSDIR}
-    cd ${SOURCEDIR}/busybox-${BUSYBOX_VERSION}/_install
-    cp -R . ${ROOTFSDIR}
-    if [ -d ${SOURCEDIR}/temprootfs ];
-    then
-        #rsync -av ${SOURCEDIR}/temprootfs/ ${ROOTFSDIR}/
-        cp -rlR ${SOURCEDIR}/temprootfs/* ${ROOTFSDIR}/
-    fi
     cd ${ROOTFSDIR}
     rm -f linuxrc
 
@@ -368,7 +407,7 @@ generate_rootfs () {
     echo >> init
     chmod +x init
 
-    chown -R root:root .
+    sudo chown -R root:root .
     find . | cpio -H newc -o | gzip > ${ISODIR}/rootfs.gz
 
     check_error_dialog "rootfs"
@@ -397,7 +436,7 @@ generate_iso () {
     echo 'DEFAULT rattie ' >> isolinux.cfg
     echo >> isolinux.cfg
     echo 'LABEL rattie ' >> isolinux.cfg
-    echo ' MENU LABEL START RATTIE LINUX ' >> isolinux.cfg
+    echo ' MENU LABEL START RATTIE LINUX '${SCRIPT_VERSION} >> isolinux.cfg
     echo ' KERNEL kernel.gz ' >> isolinux.cfg
     echo ' APPEND initrd=rootfs.gz vga=791 ' >> isolinux.cfg
     echo >> isolinux.cfg
@@ -431,9 +470,9 @@ test_qemu () {
 }
 
 clean_files () {
-    rm -rf ${SOURCEDIR}
-    rm -rf ${ROOTFSDIR}
-    rm -rf ${ISODIR}
+    sudo rm -rf ${SOURCEDIR}
+    sudo rm -rf ${ROOTFSDIR}
+    sudo rm -rf ${ISODIR}
 }
 
 # ******************************************************************************
