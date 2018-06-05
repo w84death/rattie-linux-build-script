@@ -9,11 +9,11 @@
 # ******************************************************************************
 
 SCRIPT_NAME="RATTIE LINUX - Research Operating System - Build Script"
-SCRIPT_VERSION="1.1-RC3"
+SCRIPT_VERSION="1.1"
 LINUX_NAME="RATTIE LINUX"
 DISTRIBUTION_VERSION="2018.6"
 ISO_FILENAME="rattie_linux-${SCRIPT_VERSION}.iso"
-ARCH="x86_64"
+
 KERNEL_BRANCH="3.x"
 KERNEL_VERSION="3.16.56"
 BUSYBOX_VERSION="1.28.4"
@@ -31,20 +31,23 @@ SOURCEDIR=${BASEDIR}/sources
 ROOTFSDIR=${BASEDIR}/rootfs
 ISODIR=${BASEDIR}/iso
 
+ARCH="x86_64"
+CFLAGS="-march=native -O2 -pipe"
+CXXFLAGS="-march=native -O2 -pipe"
+JFLAG=4
+
 MENU_ITEM_SELECTED=0
 DIALOG_OUT=/tmp/dialog_$$
-CFLAGS="-Os -s -fno-stack-protector -fomit-frame-pointer -U_FORTIFY_SOURCE"
-JFLAG=4
 
 # ******************************************************************************
 # DIALOG FUNCTIONS
 # ******************************************************************************
 
-show_main_menu() {
+show_main_menu () {
     dialog --backtitle "${SCRIPT_NAME} - ${DISTRIBUTION_VERSION} / v${SCRIPT_VERSION}" \
     --title "MAIN MENU" \
     --default-item "${1}" \
-    --menu "The ${LINUX_NAME} Research Operating System by kj/P1X." 18 64 10 \
+    --menu "It's small, it's fast and it's cute.\nIt is ${LINUX_NAME} Research Operating System." 18 64 10 \
     0 "INTRODUCTION" \
     1 "PREPARE DIRECTORIES" \
     2 "BUILD KERNEL" \
@@ -57,7 +60,7 @@ show_main_menu() {
     9 "QUIT" 2> ${DIALOG_OUT}
 }
 
-show_dialog() {
+show_dialog () {
     if [ ${#2} -le 24 ]; then
     WIDTH=24; HEIGHT=6; else
     WIDTH=64; HEIGHT=14; fi
@@ -66,11 +69,19 @@ show_dialog() {
     --msgbox "${2}" ${HEIGHT} ${WIDTH}
 }
 
-ask_dialog() {
+ask_dialog () {
     dialog --stdout \
     --backtitle "${SCRIPT_NAME} - ${DISTRIBUTION_VERSION} / v${SCRIPT_VERSION}" \
     --title "${1}" \
     --yesno "${2}" 14 64
+}
+
+check_error_dialog () {
+    if [ $? -gt 0 ];
+    then
+        show_dialog "An error occured ;o" "There was a problem with ${1}"
+        exit
+    fi
 }
 
 # ******************************************************************************
@@ -78,13 +89,13 @@ ask_dialog() {
 # ******************************************************************************
 
 menu_introduction () {
-    show_dialog "INTRODUCTION" "${LINUX_NAME} is an Research Operating System. This is a simple file that will create a working Linux distribution from scratch.\nIt will download all the sources, complie them and put everything into the ISO image.\nRead instuctions, learnd and have fun!" \
+    show_dialog "INTRODUCTION" "${LINUX_NAME} is an Research Operating System.\n\nThis is a simple file that will create a working Linux distribution from scratch.\nIt will download all the sources, complie them and put everything into the ISO image.\n\nRead instuctions, learnd and have fun!\n\n - kj/P1X" \
     && MENU_ITEM_SELECTED=1
     return 0
 }
 
 menu_prepare_dirs () {
-    ask_dialog "PREPARE DIRECTORIES" "Create empty folders to work with." \
+    ask_dialog "PREPARE DIRECTORIES" "Create empty folders to work with.\n - /sources for all the source code\n - /rootfs for our root tree\n - /iso for ISO file" \
     && prepare_dirs \
     && MENU_ITEM_SELECTED=2 \
     && show_dialog "PREPARE DIRECTORIES" "Done."
@@ -92,14 +103,14 @@ menu_prepare_dirs () {
 }
 
 menu_build_kernel () {
-    ask_dialog "BUILD KERNEL" "Linux Kernel ${KERNEL_VERSION}:\n - download and extract\n - configure\n - build" \
+    ask_dialog "BUILD KERNEL" "Linux Kernel ${KERNEL_VERSION} - this is the hearth of the operating system.\n\nRecipe:\n - download and extract\n - configure\n - build" \
     && build_kernel \
     && MENU_ITEM_SELECTED=3 \
     && show_dialog "BUILD KERNEL" "Done."
     return 0
 }
 menu_build_busybox () {
-    ask_dialog "BUILD BUSYBOX" "Build BusyBox ${BUSYBOX_VERSION}:\n - download and extract\n - configure\n - build" \
+    ask_dialog "BUILD BUSYBOX" "Build BusyBox ${BUSYBOX_VERSION} - all the basic stuff like cp, ls, etc.\n\nRecipe:\n - download and extract\n - configure\n - build" \
     && build_busybox \
     && MENU_ITEM_SELECTED=4 \
     && show_dialog "BUILD BUSYBOX" "Done."
@@ -107,7 +118,7 @@ menu_build_busybox () {
 }
 
 menu_build_extras () {
-    ask_dialog "BUILD EXTRAS" "Build ncurses, nano, links each doing:\n - download and extract\n - configure\n - build" \
+    ask_dialog "BUILD EXTRAS" "Build ncurses and nano (not working).\n Recipe for each:\n - download and extract\n - configure\n - build" \
     && build_extras \
     && MENU_ITEM_SELECTED=5 \
     && show_dialog "BUILD EXTRAS" "Done."
@@ -115,7 +126,7 @@ menu_build_extras () {
 }
 
 menu_generate_rootfs () {
-    ask_dialog "GENERATE ROOTFS" "Generate root file system:\n - compress file tree" \
+    ask_dialog "GENERATE ROOTFS" "Generate root file system. Combines all of the created files in a one directory tree.\n\nRecipe:\n - generates default /etc files (configs).\n - compress file tree" \
     && generate_rootfs \
     && MENU_ITEM_SELECTED=6 \
     && show_dialog "GENERATE ROOTFS" "Done."
@@ -123,7 +134,7 @@ menu_generate_rootfs () {
 }
 
 menu_generate_iso () {
-    ask_dialog "GENERATE ISO" "Generate ISO image:\n - copy nessesary files to ISO directory\n - build image" \
+    ask_dialog "GENERATE ISO" "Generate ISO image to boot from.\n\nRecipe:\n - download SysLinux \n - copy nessesary files to ISO directory\n - build image" \
     && generate_iso \
     && MENU_ITEM_SELECTED=7 \
     && show_dialog "GENERATE ISO" "Done."
@@ -131,7 +142,7 @@ menu_generate_iso () {
 }
 
 menu_qemu () {
-    ask_dialog "TEST IMAGE IN QEMU" "Test generated image on emulated computer (QEMU):\n - x86_64\n - 128MB ram\n - cdrom" \
+    ask_dialog "TEST IMAGE IN QEMU" "Test generated image on emulated computer (QEMU):\n - x86_64\n - 128MB ram\n - cdrom\n\nLOGIN: root\nPASSWORD: root" \
     && test_qemu \
     && MENU_ITEM_SELECTED=8 \
     && show_dialog "TEST IMAGE IN QEMU" "Done."
@@ -191,16 +202,20 @@ build_kernel () {
     tar -xvf kernel.tar.xz && rm kernel.tar.xz
 
     cd linux-${KERNEL_VERSION}
-    make clean
-    make defconfig
+    make ARCH=${ARCH} clean
+    make ARCH=${ARCH} defconfig
     sed -i "s/.*CONFIG_DEFAULT_HOSTNAME.*/CONFIG_DEFAULT_HOSTNAME=\"${LINUX_NAME}\"/" .config
     sed -i "s/.*CONFIG_FB_VESA.*/CONFIG_FB_VESA=y/" .config
     sed -i "s/.*LOGO_LINUX_CLUT224.*/LOGO_LINUX_CLUT224=y/" .config
     cp ${BASEDIR}/rattie_logo_224.ppm drivers/video/logo/logo_linux_clut224.ppm
     sed -i "s/.*CONFIG_OVERLAY_FS.*/CONFIG_OVERLAY_FS=y/" .config
 
-    make bzImage -j ${JFLAG}
+    make ARCH=${ARCH} -j ${JFLAG} bzImage
+    # make ARCH=${ARCH} modules -j 2
+    # make INSTALL_MOD_PATH=${SOURCEDIR}/temprootfs modules_install
     cp arch/x86/boot/bzImage ${ISODIR}/kernel.gz
+
+    check_error_dialog "linux-${KERNEL_VERSION}"
 }
 
 build_busybox () {
@@ -210,10 +225,12 @@ build_busybox () {
 
     cd busybox-${BUSYBOX_VERSION}
     make clean
-    make defconfig
+    make ARCH=${ARCH} defconfig
     sed -i "s/.*CONFIG_STATIC.*/CONFIG_STATIC=y/" .config
-    make busybox -j ${JFLAG}
+    make ARCH=${ARCH} -j ${JFLAG} busybox
     make install
+
+    check_error_dialog "busybox-${BUSYBOX_VERSION}"
 }
 
 build_extras () {
@@ -250,7 +267,7 @@ build_ncurses () {
             LDFLAGS=-L$PWD/lib \
             CPPFLAGS="-P"
 
-    make -j ${JFLAG}
+    make ARCH=${ARCH} -j ${JFLAG}
     make -j ${JFLAG} install DESTDIR=${SOURCEDIR}/temprootfs
 
     cd ${SOURCEDIR}/temprootfs/usr/lib
@@ -258,15 +275,17 @@ build_ncurses () {
     ln -s libncurses.so.5 libncurses.so
     ln -s libtinfow.so.5 libtinfo.so.5
     ln -s libtinfo.so.5 libtinfo.so
+
+    check_error_dialog "ncurses-${NCURSES_VERSION}"
 }
 
 build_nano () {
     cd ${SOURCEDIR}
-    rm -rf nano-$NANO_VERSION
-    wget -O nano.tar.xz https://nano-editor.org/dist/v${NANO_BRANCH}/nano-$NANO_VERSION.tar.xz
+    rm -rf nano-${NANO_VERSION}
+    wget -O nano.tar.xz https://nano-editor.org/dist/v${NANO_BRANCH}/nano-${NANO_VERSION}.tar.xz
     tar -xvf nano.tar.xz && rm nano.tar.xz
 
-    cd nano-$NANO_VERSION
+    cd nano-${NANO_VERSION}
     if [ -f Makefile ] ; then
             make -j ${JFLAG} clean
     fi
@@ -274,8 +293,10 @@ build_nano () {
         --prefix=/usr \
         LDFLAGS=-L=${SOURCEDIR}/temprootfs/usr/include
 
-    make -j ${JFLAG}
+    make ARCH=${ARCH} -j ${JFLAG}
     make -j ${JFLAG} install DESTDIR=${SOURCEDIR}/temprootfs
+
+    check_error_dialog "nano-${NANO_VERSION}"
 }
 
 generate_rootfs () {
@@ -322,13 +343,13 @@ generate_rootfs () {
     echo '::restart:/sbin/init' >> inittab
     echo '::ctrlaltdel:/sbin/reboot' >> inittab
     echo '::once:cat /etc/motd' >> inittab
-    echo '::respawn:/bin/cttyhack /bin/sh' >> inittab
+    echo '::askfirst:-/bin/login' >> inittab
     echo 'tty2::once:cat /etc/motd' >> inittab
-    echo 'tty2::respawn:/bin/sh' >> inittab
+    echo 'tty2::askfirst:-/bin/sh' >> inittab
     echo 'tty3::once:cat /etc/motd' >> inittab
-    echo 'tty3::respawn:/bin/sh' >> inittab
+    echo 'tty3::askfirst:-/bin/sh' >> inittab
     echo 'tty4::once:cat /etc/motd' >> inittab
-    echo 'tty4::respawn:/bin/sh' >> inittab
+    echo 'tty4::askfirst:-/bin/sh' >> inittab
     echo >> inittab
 
     touch group
@@ -336,7 +357,7 @@ generate_rootfs () {
     echo >> group
 
     touch passwd
-    echo 'root:R.8MSU0Z/1ttM:0:0:Linux User,,,:/root:/bin/sh' >> passwd
+    echo 'root:R.8MSU0Z/1ttM:0:0:Fluffy Rattie,,,:/root:/bin/sh' >> passwd
     echo >> passwd
 
     cd ${ROOTFSDIR}
@@ -349,6 +370,8 @@ generate_rootfs () {
 
     chown -R root:root .
     find . | cpio -H newc -o | gzip > ${ISODIR}/rootfs.gz
+
+    check_error_dialog "rootfs"
 }
 
 generate_iso () {
@@ -373,13 +396,13 @@ generate_iso () {
     echo 'TIMEOUT 60 ' >> isolinux.cfg
     echo 'DEFAULT rattie ' >> isolinux.cfg
     echo >> isolinux.cfg
-    echo 'LABEL rattie                      ' >> isolinux.cfg
-    echo ' MENU LABEL RATTIE HiRES          ' >> isolinux.cfg
-    echo ' KERNEL kernel.gz                 ' >> isolinux.cfg
+    echo 'LABEL rattie ' >> isolinux.cfg
+    echo ' MENU LABEL START RATTIE LINUX ' >> isolinux.cfg
+    echo ' KERNEL kernel.gz ' >> isolinux.cfg
     echo ' APPEND initrd=rootfs.gz vga=791 ' >> isolinux.cfg
     echo >> isolinux.cfg
     echo 'LABEL rattie_vga ' >> isolinux.cfg
-    echo ' MENU LABEL RATTIE CHOOSE RES ' >> isolinux.cfg
+    echo ' MENU LABEL CHOOSE RESOLUTION ' >> isolinux.cfg
     echo ' KERNEL kernel.gz ' >> isolinux.cfg
     echo ' APPEND initrd=rootfs.gz vga=ask ' >> isolinux.cfg
 
@@ -394,6 +417,8 @@ generate_iso () {
         -boot-load-size 4 \
         -boot-info-table \
         ./
+
+    check_error_dialog "generating ISO"
 }
 
 test_qemu () {
@@ -402,6 +427,7 @@ test_qemu () {
     then
         qemu-system-x86_64 -m 128M -cdrom ${ISO_FILENAME} -boot d -vga std
     fi
+    check_error_dialog "${ISO_FILENAME}"
 }
 
 clean_files () {
