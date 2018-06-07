@@ -9,31 +9,30 @@
 # ******************************************************************************
 
 SCRIPT_NAME="RATTIE LINUX - Research Operating System - Build Script"
-SCRIPT_VERSION="1.2"
+SCRIPT_VERSION="1.3-RC1"
 LINUX_NAME="RATTIE LINUX"
 DISTRIBUTION_VERSION="2018.6"
 ISO_FILENAME="rattie_linux-${SCRIPT_VERSION}.iso"
 
 # BASE
-KERNEL_BRANCH="3.x"
-KERNEL_VERSION="3.16.56"
+KERNEL_BRANCH="4.x"; KERNEL_VERSION="4.4.135"
 BUSYBOX_VERSION="1.28.4"
 SYSLINUX_VERSION="6.03"
 
 # EXTRAS
 KBD_VERSION="2.0.4"
 NCURSES_VERSION="6.1"
-NANO_VERSION="2.9.8"
-NANO_BRANCH="2.9"
+VIM_VERSION="8.1"; VIM_DIR="81"
+NANO_BRANCH="2.9"; NANO_VERSION="2.9.8"
 FIGLET_VERSION="2.2.5"
 LINKS_VERSION="2.16"
+VRMS_VERSION="1.21"
 
 BASEDIR=`realpath --no-symlinks $PWD`
 SOURCEDIR=${BASEDIR}/sources
 ROOTFSDIR=${BASEDIR}/rootfs
 ISODIR=${BASEDIR}/iso
 
-ARCH="x86_64"
 CFLAGS="-march=native -O2 -pipe"
 CXXFLAGS="-march=native -O2 -pipe"
 JFLAG=4
@@ -120,7 +119,7 @@ menu_build_busybox () {
 }
 
 menu_build_extras () {
-    ask_dialog "BUILD EXTRAS" "Build additional software.\n - kbd\n - fidglet\n - ncurses\n - nano" \
+    ask_dialog "BUILD EXTRAS" "Build additional software.\n - kbd (for font change support)\n - ncurses (lot of stuff needs this)\n - nano\n - vim\n - figlet (just for fun)\n - vrms (Virtual Richard M. Stallman)" \
     && build_extras \
     && MENU_ITEM_SELECTED=5 \
     && show_dialog "BUILD EXTRAS" "Done."
@@ -246,8 +245,19 @@ build_extras () {
     build_ncurses
     build_kbd
     build_nano
+    build_vim
     build_figlet
+    build_vrms
+
     check_error_dialog "Building extras"
+
+    strip -g \
+        ${ROOTFSDIR}/bin/* \
+        ${ROOTFSDIR}/sbin/* \
+        ${ROOTFSDIR}/lib/* \
+        ${ROOTFSDIR}/usr/* \
+        ${ROOTFSDIR}/usr/bin/* \
+        2>/dev/null
 }
 
 build_kbd () {
@@ -258,14 +268,15 @@ build_kbd () {
 
     cd kbd-${KBD_VERSION}
     if [ -f Makefile ] ; then
-            make -j ${JFLAG} clean
+            make clean -j ${JFLAG}
     fi
     CFLAGS="$CFLAGS" ./configure \
         --prefix=/usr \
         --disable-vlock
 
-    make ARCH=${ARCH} -j ${JFLAG}
-    make -j ${JFLAG} install DESTDIR=${ROOTFSDIR}
+    make -j ${JFLAG}
+    make install -j ${JFLAG} \
+        DESTDIR=${ROOTFSDIR}
 
     check_error_dialog "kbd-${KBD_VERSION}"
 }
@@ -278,11 +289,11 @@ build_figlet () {
 
     cd figlet-${FIGLET_VERSION}
     if [ -f Makefile ] ; then
-        make -j ${JFLAG} clean
+        make clean -j ${JFLAG}
     fi
 
     sed -i 's|/usr/local|'${ROOTFSDIR}/usr'|g' Makefile
-    make ARCH=${ARCH} -j ${JFLAG} install
+    make install -j ${JFLAG}
 
     check_error_dialog "figlet-${FIGLET_VERSION}"
 }
@@ -314,8 +325,9 @@ build_ncurses () {
         LDFLAGS=-L$PWD/lib \
         CPPFLAGS="-P"
 
-    make ARCH=${ARCH} -j ${JFLAG}
-    make -j ${JFLAG} install DESTDIR=${ROOTFSDIR}
+    make -j ${JFLAG}
+    make install -j ${JFLAG}  \
+        DESTDIR=${ROOTFSDIR}
 
     # cd ${SOURCEDIR}/temprootfs/usr/lib
     # ln -s libncursesw.so.5 libncurses.so.5
@@ -340,10 +352,44 @@ build_nano () {
         --prefix=/usr \
         LDFLAGS=-L$PWD/lib
 
-    make ARCH=${ARCH} -j ${JFLAG}
-    make -j ${JFLAG} install DESTDIR=${ROOTFSDIR}
+    make -j ${JFLAG}
+    make install -j ${JFLAG} \
+        DESTDIR=${ROOTFSDIR}
 
     check_error_dialog "nano-${NANO_VERSION}"
+}
+
+build_vim () {
+    cd ${SOURCEDIR}
+    rm -rf vim${VIM_DIR}
+    wget -O vim.tar.bz2 http://ftp2.pl.vim.org/pub/vim/unix/vim-${VIM_VERSION}.tar.bz2
+    tar -xvf vim.tar.bz2 && rm vim.tar.bz2
+
+    cd vim${VIM_DIR}
+    if [ -f Makefile ] ; then
+            make -j ${JFLAG} clean
+    fi
+    CFLAGS="${CFLAGS}" ./configure \
+        --prefix=/usr \
+        LDFLAGS=-L$PWD/lib
+
+    make -j ${JFLAG}
+    make install \
+        -j ${JFLAG} \
+        DESTDIR=${ROOTFSDIR}
+
+    check_error_dialog "vim-${VIM_VERSION}"
+}
+
+build_vrms () {
+    cd ${SOURCEDIR}
+    rm -rf vrms
+    wget -O vrms.tar.xz http://ftp.pl.debian.org/debian/pool/main/v/vrms/vrms_${VRMS_VERSION}.tar.xz
+    tar -xvf vrms.tar.xz && vrms.tar.xz
+
+    cp vrms/vrms ${ROOTFSDIR}/usr/bin/vrms
+
+    check_error_dialog "vrms_${VRMS_VERSION}"
 }
 
 generate_rootfs () {
@@ -407,8 +453,8 @@ generate_rootfs () {
     echo >> init
     chmod +x init
 
-    sudo chown -R root:root .
-    find . | cpio -H newc -o | gzip > ${ISODIR}/rootfs.gz
+    # sudo chown -R root:root .
+    find . | cpio -R root:root -H newc -o | gzip > ${ISODIR}/rootfs.gz
 
     check_error_dialog "rootfs"
 }
@@ -431,12 +477,12 @@ generate_iso () {
     echo 'UI menu.c32 ' >> isolinux.cfg
     echo 'PROMPT 0 ' >> isolinux.cfg
     echo >> isolinux.cfg
-    echo 'MENU TITLE RATTIE LINUX 2018.6: ' >> isolinux.cfg
+    echo 'MENU TITLE RATTIE LINUX 2018.6 /'${SCRIPT_VERSION}': ' >> isolinux.cfg
     echo 'TIMEOUT 60 ' >> isolinux.cfg
     echo 'DEFAULT rattie ' >> isolinux.cfg
     echo >> isolinux.cfg
     echo 'LABEL rattie ' >> isolinux.cfg
-    echo ' MENU LABEL START RATTIE LINUX '${SCRIPT_VERSION} >> isolinux.cfg
+    echo ' MENU LABEL START RATTIE LINUX [KERNEL:'${KERNEL_VERSION}']' >> isolinux.cfg
     echo ' KERNEL kernel.gz ' >> isolinux.cfg
     echo ' APPEND initrd=rootfs.gz vga=791 ' >> isolinux.cfg
     echo >> isolinux.cfg
@@ -459,6 +505,7 @@ generate_iso () {
 
     check_error_dialog "generating ISO"
 }
+
 
 test_qemu () {
     cd ${BASEDIR}
