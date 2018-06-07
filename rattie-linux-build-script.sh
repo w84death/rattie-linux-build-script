@@ -9,7 +9,7 @@
 # ******************************************************************************
 
 SCRIPT_NAME="RATTIE LINUX - Research Operating System - Build Script"
-SCRIPT_VERSION="1.3-RC2"
+SCRIPT_VERSION="1.3-RC3"
 LINUX_NAME="RATTIE LINUX"
 DISTRIBUTION_VERSION="2018.6"
 ISO_FILENAME="rattie_linux-${SCRIPT_VERSION}.iso"
@@ -250,16 +250,16 @@ build_extras () {
 
     check_error_dialog "Building extras"
 
-    strip -g \
-        ${ROOTFSDIR}/bin/* \
-        ${ROOTFSDIR}/sbin/* \
-        ${ROOTFSDIR}/lib/* \
-        ${ROOTFSDIR}/usr/* \
-        ${ROOTFSDIR}/usr/bin/* \
-        2>/dev/null
+    # strip -g \
+    #     ${ROOTFSDIR}/bin/* \
+    #     ${ROOTFSDIR}/sbin/* \
+    #     ${ROOTFSDIR}/lib/* \
+    #     ${ROOTFSDIR}/usr/* \
+    #     ${ROOTFSDIR}/usr/bin/* \
+    #     2>/dev/null
 
-    # hack; strip always returns !0, or gets stuck without 2>/dev/null
-    MENU_ITEM_SELECTED=5
+    # # hack; strip always returns !0, or gets stuck without 2>/dev/null
+    # MENU_ITEM_SELECTED=5
 }
 
 build_kbd () {
