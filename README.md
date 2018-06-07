@@ -8,7 +8,7 @@
        B A S H    B U I L D    S C R I P T
     ------------------------------------------
 
-**ALL EXTRA APPLICATIONS ARE NOT RECOGIZABLE BY ROOT USER AT THE MOMENT. I'M LOOKING FOR A HELP TO FIX THAT**
+**ALL EXTRA SOFTWARE ARE NOT RECOGIZABLE BY ROOT USER AT THE MOMENT. I'M LOOKING FOR A HELP TO FIX THAT**
 
 This is a simple script that will create a working Linux distribution from scratch.
 
@@ -16,19 +16,18 @@ It will download all the sources, compile them and put everything into the ISO i
 
 Version **2018.6 v1.3**:
 
-    KERNEL_BRANCH="4.x"; KERNEL_VERSION="4.4.135"
-    BUSYBOX_VERSION="1.28.4"
-    SYSLINUX_VERSION="6.03"
+- Linux 3.16.56
+- BusyBox 1.28.4
+- SysLinux 6.03
 
-Extra applications:
+Extra software (not tested):
 
-    KBD_VERSION="2.0.4"
-    NCURSES_VERSION="6.1"
-    VIM_VERSION="8.1"; VIM_DIR="81"
-    NANO_BRANCH="2.9"; NANO_VERSION="2.9.8"
-    FIGLET_VERSION="2.2.5"
-    LINKS_VERSION="2.16"
-    VRMS_VERSION="1.21"
+- kbd 2.0.4
+- ncurses 6.1
+- vim 8.1
+- nano 2.9.8
+- figlet 2.2.5
+- vrms 1.21
 
 Final ISO size: **10.1 MB** (10,094,592 bytes)
 

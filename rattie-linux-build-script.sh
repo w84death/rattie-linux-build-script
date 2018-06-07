@@ -9,13 +9,13 @@
 # ******************************************************************************
 
 SCRIPT_NAME="RATTIE LINUX - Research Operating System - Build Script"
-SCRIPT_VERSION="1.3-RC1"
+SCRIPT_VERSION="1.3-RC2"
 LINUX_NAME="RATTIE LINUX"
 DISTRIBUTION_VERSION="2018.6"
 ISO_FILENAME="rattie_linux-${SCRIPT_VERSION}.iso"
 
 # BASE
-KERNEL_BRANCH="4.x"; KERNEL_VERSION="4.4.135"
+KERNEL_BRANCH="3.x"; KERNEL_VERSION="3.16.56"
 BUSYBOX_VERSION="1.28.4"
 SYSLINUX_VERSION="6.03"
 
@@ -25,7 +25,6 @@ NCURSES_VERSION="6.1"
 VIM_VERSION="8.1"; VIM_DIR="81"
 NANO_BRANCH="2.9"; NANO_VERSION="2.9.8"
 FIGLET_VERSION="2.2.5"
-LINKS_VERSION="2.16"
 VRMS_VERSION="1.21"
 
 BASEDIR=`realpath --no-symlinks $PWD`
@@ -258,6 +257,9 @@ build_extras () {
         ${ROOTFSDIR}/usr/* \
         ${ROOTFSDIR}/usr/bin/* \
         2>/dev/null
+
+    # hack; strip always returns !0, or gets stuck without 2>/dev/null
+    MENU_ITEM_SELECTED=5
 }
 
 build_kbd () {
@@ -407,8 +409,8 @@ generate_rootfs () {
     touch motd
     echo >> motd
     echo ' ------------------------------------ 2018.6 ' >> motd
-    echo '                   ^..^__                    ' >> motd
-    echo '                   *,, , )_-                 ' >> motd
+    echo '                   "..^__                    ' >> motd
+    echo '                   *,,-,_).-~                ' >> motd
     echo '                 RATTIE LINUX                ' >> motd
     echo '          Research Operating System          ' >> motd
     echo '  ------------------------------------------ ' >> motd
